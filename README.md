@@ -1,1 +1,41 @@
-# chat-app
+# Demo App
+
+### Folder structure
+```
+<root>
+├── scripts                               # Scripts for testing, deployment, ...
+├── src
+│   ├── apps                              # User-facing apps
+│   ├── libs                              # Common utility functions
+├── Dockerfile                            # Container image
+├── pyproject.toml
+```
+
+
+### Set up
+Run the followings
+
+```shell
+# Install poetry (Mac) or follow https://python-poetry.org/docs/ (others)
+brew install poetry
+
+# Enter new virtual env using poetry
+poetry shell
+
+# Install packages and update
+poetry install
+poetry update
+
+# Verify installation
+poetry show fastapi
+```
+
+### Pre-commit
+1. Install pre-commit using `brew install pre-commit` for Mac or follow https://pre-commit.com/#install for other systems
+2. Run `pre-commit install` shell
+3. Test by running `pre-commit run --all-files`
+
+
+### Local Development
+1. Copy [.env.template](.env.template) to a new file named `.env` (to be used for local development, do not commit to repo) and update the API Keys and Settings
+2. Run `PYTHONPATH=src python -m uvicorn apps.fastapi_chainlit_app:app --host 0.0.0.0`

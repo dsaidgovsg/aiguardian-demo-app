@@ -4,8 +4,6 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from constants import VERSION
-
 app = FastAPI(docs_url=None, redoc_url=None)
 
 origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")

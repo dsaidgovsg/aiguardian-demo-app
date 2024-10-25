@@ -1,0 +1,67 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    # https://github.com/pre-commit/pre-commit/blob/main/.pre-commit-config.yaml
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=2048']
+      - id: check-ast
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: debug-statements
+      - id: detect-aws-credentials
+        args: ["--allow-missing-credentials"]
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: name-tests-test
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/qoomon/git-conventional-commits
+    rev: v2.6.7
+    hooks:
+      - id: conventional-commits
+  - repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.14.0
+    hooks:
+      - id: reorder-python-imports
+        args: [
+          --py38-plus,
+          "--application-directories", "src:tests",
+        ]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.0
+    hooks:
+      - id: pyupgrade
+        args: [--py38-plus]
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.10.0
+    hooks:
+      - id: black
+        args: [
+          "--line-length", "79",
+          "--exclude", "node_modules/"
+        ]
+  - repo: https://github.com/hhatto/autopep8
+    rev: v2.3.1
+    hooks:
+      - id: autopep8
+        args: [
+          "--in-place",
+          "--ignore", "E203",
+        ]
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: [
+          "--extend-ignore", "E203",
+          "--exclude", "node_modules"
+        ]
+#  - repo: https://github.com/pre-commit/mirrors-mypy
+#    rev: v1.6.1
+#    hooks:
+#      - id: mypy
+#        additional_dependencies: [types-all]
+#        exclude: ^testing/resources/
