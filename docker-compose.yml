@@ -1,0 +1,13 @@
+services:
+  chat-app:
+    image: qtangs/public-1a:chat1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    ports:
+      - "8000:8000"
+    environment:
+      - CHAINLIT_PORT=8000
+    volumes:
+      - ./src/.env:/app/.env:ro
