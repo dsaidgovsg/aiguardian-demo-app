@@ -28,6 +28,9 @@ COPY --from=builder-main /usr/local/lib/python3.11/site-packages /usr/local/lib/
 ###                  End - Install python requirements              ###
 #######################################################################
 
+# Set environment variables (e.g., set Python to run in unbuffered mode)
+ENV PYTHONUNBUFFERED 1
+
 RUN groupadd -r -g 1001 appuser \
     && useradd -r -u 1001 -g 1001 -d /app appuser
 
