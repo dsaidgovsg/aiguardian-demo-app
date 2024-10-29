@@ -21,7 +21,10 @@ if not os.getenv("CHAINLIT_AUTH_SECRET"):
     os.environ["CHAINLIT_AUTH_SECRET"] = random_secret()
 
 
-logger.info(f"Mounting chainlit app {app_file} on path {path}")
+logger.info(
+    f"Mounting chainlit app {app_file} "
+    f"on path http://0.0.0.0:8000{path}/login"
+)
 mount_chainlit(
     app=app,
     target=os.path.join(os.path.dirname(__file__), "..", app_file),

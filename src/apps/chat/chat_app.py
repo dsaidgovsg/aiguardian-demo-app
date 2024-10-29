@@ -1,6 +1,9 @@
 import functools
 import os
+from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
 
 import chainlit as cl
 from langchain_core.callbacks import BaseCallbackHandler
@@ -14,7 +17,8 @@ from apps.base_app import BaseChainlitApp
 from apps.handlers import AnswerCallbackHandler
 from constants import LLM_PROFILES
 from libs.logging_helper import logger
-from services.sentinel.main import call_sentinel_api
+from services.sentinel import aip_sentinel
+from services.sentinel import bedrock_guardrails
 
 
 def check_sentinel(args, runnable):
@@ -47,87 +51,25 @@ def check_sentinel(args, runnable):
     """
     messages: List[BaseMessage] = args["messages"]
     content_to_check = "\n".join(
-        f"{_.type}: {_.content}" for _ in messages[-3:]
+        f"{_.type}: {_.content}" for _ in messages[-3:] if _.type != "system"
     )
 
-    sentinel_check_result = call_sentinel_api(
-        content_to_check,
-        filters=["lionguard", "promptguard"],
-    )
+    chat_settings = cl.user_session.get("chat_settings")
 
-    sentinel_checks = [
-        {
-            "type": "promptguard",
-            "subtype": "jailbreak",
-            "threshold": 0.8,
-            "message": "Jailbreak attempt detected and logged.",
-        },
-        {
-            "type": "off-topic-2",
-            "subtype": "off-topic",
-            "threshold": 0.8,
-            "message": "Off-topic message detected and logged.",
-        },
-        # {
-        #     "type": "lionguard",
-        #     "subtype": "binary",
-        #     "threshold": 0.8,
-        #     "message": "Binary message detected and logged.",
-        # },
-        {
-            "type": "lionguard",
-            "subtype": "hateful",
-            "threshold": 0.8,
-            "message": "Hateful message detected and logged.",
-        },
-        {
-            "type": "lionguard",
-            "subtype": "harassment",
-            "threshold": 0.8,
-            "message": "Harassment detected and logged.",
-        },
-        {
-            "type": "lionguard",
-            "subtype": "public_harm",
-            "threshold": 0.8,
-            "message": "Public harm detected and logged.",
-        },
-        {
-            "type": "lionguard",
-            "subtype": "self_harm",
-            "threshold": 0.8,
-            "message": "Self harm detected and logged.",
-        },
-        {
-            "type": "lionguard",
-            "subtype": "sexual",
-            "threshold": 0.8,
-            "message": "Sexual content detected and logged.",
-        },
-        {
-            "type": "lionguard",
-            "subtype": "toxic",
-            "threshold": 0.8,
-            "message": "Toxic content detected and logged.",
-        },
-        {
-            "type": "lionguard",
-            "subtype": "violent",
-            "threshold": 0.8,
-            "message": "Violent content detected and logged.",
-        },
-    ]
+    if chat_settings.get("sentinel_provider") == "aip":
+        passed, error_message = aip_sentinel.validate(
+            content_to_check,
+            filters=["lionguard", "promptguard"],
+        )
+    else:
+        passed, error_message = bedrock_guardrails.validate(
+            content_to_check,
+        )
 
-    for check in sentinel_checks:
-        if (
-            sentinel_check_result["outputs"]
-            .get(check["type"], {})
-            .get(check["subtype"], 0)
-            > check["threshold"]
-        ):
-            return ChatPromptTemplate(messages=[]) | FakeListChatModel(
-                responses=[f'WARNING: {check["message"]}']
-            )
+    if not passed:
+        return ChatPromptTemplate(messages=[]) | FakeListChatModel(
+            responses=[f"WARNING: {error_message}"]
+        )
 
     return runnable
 
@@ -140,6 +82,36 @@ system_prompt = (
 
 
 class ChatApp(BaseChainlitApp):
+    async def get_chat_settings(self, user: Optional[cl.User]):
+        if not user:
+            return None
+
+        settings = [
+            cl.input_widget.Select(
+                id="sentinel_provider",
+                label="Sentinel Provider",
+                initial_value="aip",
+                items={
+                    "AIP": "aip",
+                    "BG": "bedrock",
+                },
+            ),
+            # cl.input_widget.Slider(
+            #     id="threshold",
+            #     label="Threshold for Sentinel Checks",
+            #     initial=0.8,
+            #     min=0,
+            #     max=1,
+            #     step=0.1,
+            # ),
+        ]
+
+        return cl.ChatSettings(settings)
+
+    async def on_chat_settings_update(self, settings: Dict[str, Any]):
+        """Update chat settings"""
+        pass
+
     async def on_chat_start(self):
         await cl.Message(
             content="Welcome! I specialised in providing dates related to "
@@ -203,7 +175,11 @@ class ChatApp(BaseChainlitApp):
 
     def get_runnable_callbacks(self) -> List[BaseCallbackHandler]:
         callbacks = super().get_runnable_callbacks()
-        callbacks.append(AnswerCallbackHandler())
+        callbacks.append(
+            AnswerCallbackHandler(
+                on_message_complete=self.add_message_to_memory
+            )
+        )
 
         return callbacks
 

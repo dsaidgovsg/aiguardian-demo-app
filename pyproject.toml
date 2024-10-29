@@ -26,7 +26,7 @@ black = "^24.10.0"
 langfuse = "^2.53.2"
 
 
-[tool.mypy.overrides]
+[[tool.mypy.overrides]]
 module = "requests"
 ignore_missing_imports = true
 

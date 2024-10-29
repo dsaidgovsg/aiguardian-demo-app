@@ -11,6 +11,7 @@ load_dotenv(os.getenv("ENV_FILE"), override=True)
 PRODUCT = os.getenv("PRODUCT")
 VERSION = os.environ.get("VERSION", "0")
 ENV = os.getenv("ENV", "stg")
+REGION = os.getenv("REGION", "us-east-1")
 SG_TZ = "Asia/Singapore"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 

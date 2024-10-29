@@ -3,6 +3,7 @@ import os
 import time
 import uuid
 from abc import abstractmethod
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Literal
@@ -100,6 +101,12 @@ class BaseChainlitApp(BaseModel):
             await self.setup_runnable()
 
             await self.on_chat_start()
+
+            if settings := await self.get_chat_settings(
+                cl.user_session.get("user")
+            ):
+                await settings.send()
+                cl.on_settings_update(self.on_chat_settings_update)
 
         async def on_chat_resume(thread: cl.types.ThreadDict):
             memory: BaseChatMemory = ConversationBufferMemory(
@@ -239,6 +246,16 @@ class BaseChainlitApp(BaseModel):
 
     async def on_chat_resume(self, thread: cl.types.ThreadDict):
         """Subclass need to override this if resuming chat is supported"""
+        pass
+
+    async def get_chat_settings(
+        self, user: Optional[cl.User]
+    ) -> Optional[cl.ChatSettings]:
+        """Get chat settings"""
+        return None
+
+    async def on_chat_settings_update(self, settings: Dict[str, Any]):
+        """Update chat settings"""
         pass
 
     async def on_message(self, message: cl.Message, **kwargs):

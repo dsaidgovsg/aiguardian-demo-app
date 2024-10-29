@@ -1,4 +1,5 @@
 import os
+from collections.abc import Callable
 from typing import Any
 from typing import Dict
 from typing import List
@@ -18,6 +19,11 @@ from langchain_core.outputs import LLMResult
 class AnswerCallbackHandler(AsyncCallbackHandler):
     message: cl.Message
     elements: List[cl.element.Element] = []
+    on_message_complete: Callable[[cl.Message], Any] = lambda message: None
+
+    def __init__(self, on_message_complete: Callable[[cl.Message], Any]):
+        super().__init__()
+        self.on_message_complete = on_message_complete
 
     async def on_chat_model_start(
         self,
@@ -68,3 +74,4 @@ class AnswerCallbackHandler(AsyncCallbackHandler):
         **kwargs: Any,
     ) -> None:
         await self.message.update()
+        await self.on_message_complete(self.message)
