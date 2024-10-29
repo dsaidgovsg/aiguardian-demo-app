@@ -7,6 +7,7 @@ from typing import Union
 from uuid import UUID
 
 import chainlit as cl
+from chainlit.config import config
 from langchain_core.callbacks import AsyncCallbackHandler
 from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatGenerationChunk
@@ -33,8 +34,10 @@ class AnswerCallbackHandler(AsyncCallbackHandler):
             content="",
             author=(
                 metadata["run_name"]
-                if os.getenv("LOG_LEVEL") == "DEBUG" and "run_name" in metadata
-                else cl.config.ui.name
+                if os.getenv("LOG_LEVEL") == "DEBUG"
+                and metadata is not None
+                and "run_name" in metadata
+                else config.ui.name
             ),
             elements=self.elements or [],
         )
@@ -64,11 +67,4 @@ class AnswerCallbackHandler(AsyncCallbackHandler):
         tags: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
-        if not self.message.content:
-            await cl.user_session.get("waiting_message").remove()
-
-            self.message.content = response.generations[0][0].text
-
-            await self.message.send()
-
         await self.message.update()

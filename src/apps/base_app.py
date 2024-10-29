@@ -3,12 +3,10 @@ import os
 import time
 import uuid
 from abc import abstractmethod
-from typing import Any
 from typing import Dict
 from typing import List
 from typing import Literal
 from typing import Optional
-from typing import Tuple
 
 import chainlit as cl
 import uvicorn
@@ -21,18 +19,16 @@ from langchain_community.llms.fake import FakeListLLM
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from langchain_core.messages import AIMessage
+from langchain_core.messages import BaseMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import Runnable
 from langchain_core.runnables import RunnableConfig
-from langsmith import traceable
 from pydantic.v1 import BaseModel
 from pydantic.v1 import Field
 from starlette.datastructures import Headers
 
-from constants import ENV
 from constants import LLM_PROFILES
-from constants import PRODUCT
 from libs import cryptography_helper
 from libs.logging_helper import logger
 
@@ -140,8 +136,8 @@ class BaseChainlitApp(BaseModel):
 
         @cl.on_message
         async def on_message(message: cl.Message):
-            tags = []
-            metadata = {}
+            tags: List[str] = []
+            metadata: Dict[str, str] = {}
 
             user = cl.user_session.get("user")
             if user and hasattr(user, "id"):
@@ -159,7 +155,7 @@ class BaseChainlitApp(BaseModel):
 
     async def password_auth_callback(self, username: str, password: str):
         if os.getenv("CHAINLIT_PWD_USERS"):
-            pwd_users = os.getenv("CHAINLIT_PWD_USERS").split(";")
+            pwd_users = os.getenv("CHAINLIT_PWD_USERS", "").split(";")
             hashed_pw = cryptography_helper.hash(password)
             if f"{username}:{hashed_pw}" in pwd_users:
                 if username == "pwd_bypass_usr":
@@ -199,7 +195,7 @@ class BaseChainlitApp(BaseModel):
             raise ValueError(f"Invalid message type: {message.type}")
 
         if check_for_edit:
-            messages = []
+            messages: List[BaseMessage] = []
             for history_message in self.memory.chat_memory.messages:
                 if history_message.additional_kwargs.get("id") == message.id:
                     # Message already exists in history,
@@ -245,10 +241,6 @@ class BaseChainlitApp(BaseModel):
         """Subclass need to override this if resuming chat is supported"""
         pass
 
-    @traceable(
-        run_type="chain",
-        name=f"{PRODUCT}-{ENV}-on_message",
-    )
     async def on_message(self, message: cl.Message, **kwargs):
         """Default implementation using runnable and streaming"""
         start_time = time.time()
@@ -272,7 +264,6 @@ class BaseChainlitApp(BaseModel):
         callbacks = self.get_runnable_callbacks()
 
         runnable_input = await self.get_runnable_input(message)
-        runnable_input["callbacks"] = callbacks
 
         # Just invoke the runnable here and let the callbacks handle results
         try:
@@ -283,7 +274,14 @@ class BaseChainlitApp(BaseModel):
                 config=RunnableConfig(callbacks=callbacks),
                 include_names=self.names_in_stream_events,
             ):
-                pass
+                logger.debug(
+                    {
+                        "msg": "Streaming event",
+                        "event_type": event["event"],
+                        "name": event["name"],
+                        # "data": event["data"],
+                    }
+                )
         except Exception as e:
             error_id = str(uuid.uuid4())[:8]
             logger.error(
@@ -342,20 +340,16 @@ class BaseChainlitApp(BaseModel):
         Returns:
             List of callbacks.
         """
-        return [cl.AsyncLangchainCallbackHandler()]
+        callbacks = [cl.AsyncLangchainCallbackHandler()]
+        try:
+            if os.getenv("LANGFUSE_SECRET_KEY"):
+                from langfuse.callback import CallbackHandler
 
-    async def on_chunk_from_chain_stream(
-        self, runnable_input, chunk: Dict, displayed_value: Any, metadata: Dict
-    ) -> Tuple[str, List[cl.Action], List[cl.element.Element]]:
-        """Process the new chunk in a chain stream,
-        each subclass can implement this if desired"""
-        pass
+                callbacks.append(CallbackHandler())
+        except Exception:
+            pass
 
-    async def on_runnable_end(
-        self, runnable_input, runnable_output, out_message
-    ) -> Tuple[str, List[cl.Action], List[cl.element.Element]]:
-        """Process the output to extract actions and elements for UI display"""
-        pass
+        return callbacks
 
     async def send_message(self, message: cl.Message, **kwargs):
         """ Send the message to user and record it in memory

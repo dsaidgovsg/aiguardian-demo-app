@@ -2,7 +2,7 @@ ARG PYTHON_VERSION=3.11.10-slim
 ARG APP_VERSION=latest
 
 #
-# Third build stage - All other requirements
+# First build stage - All requirements
 #
 FROM python:${PYTHON_VERSION} AS builder-main
 
@@ -42,9 +42,9 @@ WORKDIR /app
 COPY .chainlit ./.chainlit
 COPY chainlit.md ./
 COPY public ./public
-COPY src/apps ./apps
-COPY src/libs ./libs
-COPY src/*.py *.md ./
+COPY src ./
+
+COPY --chmod=0755 scripts/entrypoint.sh .
 
 RUN echo VERSION=$(tr -dc 0-9 </dev/urandom | head -c 2)$(date "+%m%d%H%M")$(tr -dc 0-9 </dev/urandom | head -c 2) > .env
 
@@ -60,6 +60,6 @@ EXPOSE 8000
 
 ENV PYTHONPATH=/app
 
-RUN python apps/setup.py
+ENTRYPOINT [ "/app/entrypoint.sh" ]
 
 CMD ["python", "-m", "uvicorn", "apps.fastapi_chainlit_app:app", "--host", "0.0.0.0"]

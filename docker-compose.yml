@@ -1,6 +1,6 @@
 services:
   chat-app:
-    image: qtangs/public-1a:chat1
+    image: ${IMAGE_NAME:-302263074456.dkr.ecr.ap-southeast-1.amazonaws.com/aiguardian/demo-app}:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,5 +9,10 @@ services:
       - "8000:8000"
     environment:
       - CHAINLIT_PORT=8000
-    volumes:
-      - ./src/.env:/app/.env:ro
+      - CHAINLIT_ROOT_PATH=/demo-app
+      - DOT_ENV_SSM_PARAMETER_NAME=/aiguardian/demo-app/dev/env
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - AWS_SESSION_TOKEN
+#    volumes:
+#      - ./src/.env:/app/.env:ro

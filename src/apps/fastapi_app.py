@@ -4,6 +4,8 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from constants import VERSION
+
 app = FastAPI(docs_url=None, redoc_url=None)
 
 origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
@@ -15,6 +17,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+def root():
+    return {"message": "Ok", "v": VERSION}
 
 
 if __name__ == "__main__":

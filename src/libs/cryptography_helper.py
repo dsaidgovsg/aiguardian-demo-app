@@ -24,7 +24,7 @@ def generate_uuid(text):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, text))
 
 
-def generate_random_string(length: int, characters: str = None):
+def generate_random_string(length: int, characters: str = ""):
     """
     Generate a random string of given length and set of characters
     Default to alphanumeric characters.
