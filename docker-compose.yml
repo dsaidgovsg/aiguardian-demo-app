@@ -6,9 +6,9 @@ services:
       dockerfile: Dockerfile
     platform: linux/amd64
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
-      - CHAINLIT_PORT=8000
+      - CHAINLIT_PORT=8001
       - CHAINLIT_ROOT_PATH=/demo-app
       - DOT_ENV_SSM_PARAMETER_NAME=/aiguardian/demo-app/dev/env
       - AWS_ACCESS_KEY_ID

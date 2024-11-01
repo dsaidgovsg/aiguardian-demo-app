@@ -1,1 +1,5 @@
 img[alt=loading] { width: 32px !important; }
+
+img[alt=forbidden-chat] { width: 20px !important; }
+
+.markdown-body p { display: flex; align-items: center; }

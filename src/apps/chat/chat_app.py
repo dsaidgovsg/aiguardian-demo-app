@@ -1,5 +1,7 @@
 import functools
+import json
 import os
+import random
 from typing import Any
 from typing import Dict
 from typing import List
@@ -12,6 +14,7 @@ from langchain_core.messages import BaseMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
+from pydantic import Field
 
 from apps.base_app import BaseChainlitApp
 from apps.handlers import AnswerCallbackHandler
@@ -24,51 +27,30 @@ from services.sentinel import bedrock_guardrails
 def check_sentinel(args, runnable):
     """
     Check sentinel
-
-    # Sample output
-    {
-      "outputs": {
-        "lionguard": {
-          "binary": 0,
-          "hateful": 0,
-          "harassment": 0,
-          "public_harm": 0,
-          "self_harm": 0,
-          "sexual": 0,
-          "toxic": 0,
-          "violent": 0
-        },
-        "promptguard": {
-          "jailbreak": 0.9804580807685852
-        },
-        "off-topic-2": {
-          "off-topic": 0.28574493527412415
-        },
-        "request_id": "1f8e8089-b71b-4054-881b-ee727f46f3c2"
-      }
-    }
-
     """
     messages: List[BaseMessage] = args["messages"]
-    content_to_check = "\n".join(
-        f"{_.type}: {_.content}" for _ in messages[-3:] if _.type != "system"
-    )
+    content_to_check = "\n".join(f"{_.content}" for _ in messages[-1:])
 
     chat_settings = cl.user_session.get("chat_settings")
 
-    if chat_settings.get("sentinel_provider") == "aip":
-        passed, error_message = aip_sentinel.validate(
+    passed, error_message = (
+        aip_sentinel.validate(
             content_to_check,
-            filters=["lionguard", "promptguard"],
+            filters=["lionguard", "promptguard", "off-topic-2"],
+            params={"off-topic-2": {"system_prompt": system_prompt}},
         )
-    else:
-        passed, error_message = bedrock_guardrails.validate(
+        if chat_settings.get("sentinel_provider") == "aip"
+        else bedrock_guardrails.validate(
             content_to_check,
         )
+    )
 
     if not passed:
         return ChatPromptTemplate(messages=[]) | FakeListChatModel(
-            responses=[f"WARNING: {error_message}"]
+            responses=[
+                "![forbidden-chat](public/images/forbidden.svg) "
+                f"**WARNING**: {error_message}"
+            ]
         )
 
     return runnable
@@ -76,12 +58,19 @@ def check_sentinel(args, runnable):
 
 system_prompt = (
     "You are a chatbot specialised in providing dates related to "
-    "Singapore history. "
-    "Do not answer any questions that are not related to dates."
+    "Singapore history."
 )
+
+EXAMPLES = json.loads(os.getenv("SENTINEL_EXAMPLES", "{}"))
 
 
 class ChatApp(BaseChainlitApp):
+    actions: List[str] = Field(
+        default=[
+            "Generate Example",
+        ]
+    )
+
     async def get_chat_settings(self, user: Optional[cl.User]):
         if not user:
             return None
@@ -113,9 +102,34 @@ class ChatApp(BaseChainlitApp):
         pass
 
     async def on_chat_start(self):
+        actions = [
+            cl.Action(
+                name="Generate Example",
+                value="valid",
+                label="Valid Input",
+            ),
+            cl.Action(
+                name="Generate Example",
+                value="harmful",
+                label="Harmful/Toxic Input",
+            ),
+            cl.Action(
+                name="Generate Example",
+                value="jailbreak",
+                label="Jailbreak Attempt",
+            ),
+            cl.Action(
+                name="Generate Example",
+                value="off-topic",
+                label="Off-topic Query",
+            ),
+        ]
         await cl.Message(
             content="Welcome! I specialised in providing dates related to "
-            "Singapore history."
+            "Singapore history. \n\n"
+            "_Select any of the options below "
+            "or type in your query to get started._",
+            actions=actions,
         ).send()
 
         await self.add_message_to_memory(
@@ -144,13 +158,7 @@ class ChatApp(BaseChainlitApp):
         )
 
         llm = ChatOpenAI(
-            model_name=(
-                "gpt-4o-mini-prd-gcc2-lb"
-                if llm_profile.default_llm_config.model.startswith(
-                    "gpt-4o-mini"
-                )
-                else "gpt-4o-prd-gcc2-lb"
-            ),
+            model_name=llm_profile.default_llm_config.model,
             temperature=llm_profile.default_llm_config.temperature,
             max_tokens=llm_profile.default_llm_config.max_tokens,
             streaming=True,
@@ -160,10 +168,12 @@ class ChatApp(BaseChainlitApp):
             {"run_name": cl.config.config.ui.name}
         )
 
-        if "sentinel" in llm_profile.name:
+        if "sentinel" in llm_profile.name.lower():
             runnable = RunnableLambda(
                 functools.partial(check_sentinel, runnable=runnable)
             )
+
+        runnable.name = llm_profile.name
 
         cl.user_session.set("runnable", runnable)
 
@@ -182,6 +192,24 @@ class ChatApp(BaseChainlitApp):
         )
 
         return callbacks
+
+    async def on_action_taken(self, action_name: str, action: cl.Action):
+        logger.info(
+            {
+                "msg": "Action taken",
+                "action_name": action_name,
+                "action": action,
+            }
+        )
+        if action_name == "Generate Example":
+            new_message = await cl.Message(
+                content=random.choice(EXAMPLES.get(action.value, [])),
+                type="user_message",
+            ).send()
+            await self.on_message(new_message)
+        else:
+            # Should not come here
+            pass
 
 
 def main():

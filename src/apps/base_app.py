@@ -25,8 +25,8 @@ from langchain_core.messages import HumanMessage
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import Runnable
 from langchain_core.runnables import RunnableConfig
-from pydantic.v1 import BaseModel
-from pydantic.v1 import Field
+from pydantic import BaseModel
+from pydantic import Field
 from starlette.datastructures import Headers
 
 from constants import LLM_PROFILES
@@ -39,7 +39,7 @@ cl_to_langchain_msg_type_map = {
     "system_message": SystemMessage,
 }
 
-LOADING_IMAGE = """![loading](/public/images/loading/4.svg "loading")"""
+LOADING_IMAGE = """![loading](public/images/loading/4.svg "loading")"""
 
 
 class BaseChainlitApp(BaseModel):

@@ -18,18 +18,6 @@ AIP_SENTINEL_ENDPOINT = os.getenv("AIP_SENTINEL_ENDPOINT")
 
 
 sentinel_checks = [
-    {
-        "type": "promptguard",
-        "subtype": "jailbreak",
-        "threshold": 0.8,
-        "message": "Jailbreak attempt detected and logged.",
-    },
-    {
-        "type": "off-topic-2",
-        "subtype": "off-topic",
-        "threshold": 0.8,
-        "message": "Off-topic message detected and logged.",
-    },
     # {
     #     "type": "lionguard",
     #     "subtype": "binary",
@@ -78,6 +66,18 @@ sentinel_checks = [
         "threshold": 0.8,
         "message": "Violent content detected and logged.",
     },
+    {
+        "type": "promptguard",
+        "subtype": "jailbreak",
+        "threshold": 0.8,
+        "message": "Jailbreak attempt detected and logged.",
+    },
+    {
+        "type": "off-topic-2",
+        "subtype": "off-topic",
+        "threshold": 0.8,
+        "message": "Off-topic message detected and logged.",
+    },
 ]
 
 
@@ -93,7 +93,31 @@ def validate(
     params: dict = {},
 ) -> Tuple[bool, str | None]:
     """
-    Check sentinel
+    Validate using AIP Sentinel API
+
+    # Sample output from the API
+    {
+      "outputs": {
+        "lionguard": {
+          "binary": 0,
+          "hateful": 0,
+          "harassment": 0,
+          "public_harm": 0,
+          "self_harm": 0,
+          "sexual": 0,
+          "toxic": 0,
+          "violent": 0
+        },
+        "promptguard": {
+          "jailbreak": 0.9804580807685852
+        },
+        "off-topic-2": {
+          "off-topic": 0.28574493527412415
+        },
+        "request_id": "1f8e8089-b71b-4054-881b-ee727f46f3c2"
+      }
+    }
+
     Args:
         text:
         filters:
@@ -108,6 +132,7 @@ def validate(
         params=params,
     )
 
+    errors: List[str] = []
     for check in sentinel_checks:
         if (
             sentinel_check_result["outputs"]
@@ -115,7 +140,14 @@ def validate(
             .get(check["subtype"], 0)
             > check["threshold"]
         ):
-            return False, str(check["message"])
+            errors.append(str(check["message"]))
+    if errors:
+        # first_error = errors[0]
+        # return False, (
+        #     f"{first_error}{' ' if len(errors) > 1 else ''}"
+        #     f"{' '.join(errors[1:])} detected and logged."
+        # )
+        return False, errors[0]
 
     return True, None
 

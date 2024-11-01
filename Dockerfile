@@ -56,10 +56,8 @@ RUN chown -R 1001:1001 ./
 
 USER 1001:1001
 
-EXPOSE 8000
-
 ENV PYTHONPATH=/app
 
 ENTRYPOINT [ "/app/entrypoint.sh" ]
 
-CMD ["python", "-m", "uvicorn", "apps.fastapi_chainlit_app:app", "--host", "0.0.0.0"]
+CMD python -m uvicorn apps.fastapi_chainlit_app:app --host 0.0.0.0 --port ${CHAINLIT_PORT:-8000}
