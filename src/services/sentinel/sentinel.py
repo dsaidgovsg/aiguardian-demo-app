@@ -92,16 +92,14 @@ def validate(
         additional_params=additional_params,
     )
 
-    errors: List[str] = []
+    failed_guardrails: List[str] = []
 
     for guardrail, result in sentinel_check_result["results"].items():
         if result["score"] > 0.95:
-            errors.append(f"Failed {guardrail}")
-    if errors:
-        first_error = errors[0]
+            failed_guardrails.append(f'{guardrail} ({result["score"]:.4f})')
+    if failed_guardrails:
         return False, (
-            f"{first_error}{' ' if len(errors) > 1 else ''}"
-            f"{' '.join(errors[1:])} validation failed. Revise your prompt or check with our technical support."  # noqa: E501
+            f"{'These validations failed: '.join(failed_guardrails[1:])}. Revise your prompt or check with our technical support."  # noqa: E501
         )
         # return False, errors[0]
 
