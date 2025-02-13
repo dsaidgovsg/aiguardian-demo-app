@@ -20,8 +20,7 @@ from apps.base_app import BaseChainlitApp
 from apps.handlers import AnswerCallbackHandler
 from constants import LLM_PROFILES
 from libs.logging_helper import logger
-from services.sentinel import aip_sentinel, sentinel
-from services.sentinel import bedrock_guardrails
+from services.sentinel import sentinel
 
 
 def check_sentinel(args, runnable):
@@ -71,17 +70,6 @@ class ChatApp(BaseChainlitApp):
             return None
 
         settings = [
-            cl.input_widget.Select(
-                id="sentinel_provider",
-                label="Sentinel Provider",
-                initial_value=os.getenv(
-                    "DEFAULT_SENTINEL_PROVIDER", "bedrock"
-                ),
-                items={
-                    "AIP": "aip",
-                    "BG": "bedrock",
-                },
-            ),
             # cl.input_widget.Slider(
             #     id="threshold",
             #     label="Threshold for Sentinel Checks",
@@ -129,7 +117,7 @@ class ChatApp(BaseChainlitApp):
         )
 
         llm = ChatOpenAI(
-            model_name=llm_profile.default_llm_config.model,
+            model=llm_profile.default_llm_config.model,
             temperature=llm_profile.default_llm_config.temperature,
             max_tokens=llm_profile.default_llm_config.max_tokens,
             streaming=True,

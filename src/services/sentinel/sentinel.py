@@ -2,7 +2,6 @@ import json
 import os
 import time
 from typing import List
-from typing import Literal
 from typing import Tuple
 
 import requests
@@ -12,73 +11,14 @@ from tenacity import wait_exponential
 
 from libs.logging_helper import logger
 
-# Load secrets from ENV
-AIP_SENTINEL_API_KEY = os.getenv("AIP_SENTINEL_API_KEY")
-AIP_SENTINEL_ENDPOINT = os.getenv("AIP_SENTINEL_ENDPOINT")
+# Load Sentinel Server details from Env Variables
+SENTINEL_BASE_URL = os.getenv("SENTINEL_BASE_URL")
+SENTINEL_API_KEY = os.getenv("SENTINEL_API_KEY")
 
-
-sentinel_checks = [
-    # {
-    #     "type": "lionguard",
-    #     "subtype": "binary",
-    #     "threshold": 0.8,
-    #     "message": "Binary message detected and logged.",
-    # },
-    {
-        "type": "lionguard",
-        "subtype": "hateful",
-        "threshold": 0.8,
-        "message": "Hateful message detected and logged.",
-    },
-    {
-        "type": "lionguard",
-        "subtype": "harassment",
-        "threshold": 0.8,
-        "message": "Harassment detected and logged.",
-    },
-    {
-        "type": "lionguard",
-        "subtype": "public_harm",
-        "threshold": 0.8,
-        "message": "Public harm detected and logged.",
-    },
-    {
-        "type": "lionguard",
-        "subtype": "self_harm",
-        "threshold": 0.8,
-        "message": "Self harm detected and logged.",
-    },
-    {
-        "type": "lionguard",
-        "subtype": "sexual",
-        "threshold": 0.8,
-        "message": "Sexual content detected and logged.",
-    },
-    {
-        "type": "lionguard",
-        "subtype": "toxic",
-        "threshold": 0.8,
-        "message": "Toxic content detected and logged.",
-    },
-    {
-        "type": "lionguard",
-        "subtype": "violent",
-        "threshold": 0.8,
-        "message": "Violent content detected and logged.",
-    },
-    {
-        "type": "promptguard",
-        "subtype": "jailbreak",
-        "threshold": 0.8,
-        "message": "Jailbreak attempt detected and logged.",
-    },
-    {
-        "type": "off-topic-2",
-        "subtype": "off-topic",
-        "threshold": 0.8,
-        "message": "Off-topic message detected and logged.",
-    },
-]
+if not SENTINEL_BASE_URL or not SENTINEL_API_KEY:
+    raise Exception(
+        "Missing SENTINEL_BASE_URL / SENTINEL_API_KEY in environment variables"
+    )
 
 
 def validate(
@@ -99,9 +39,8 @@ def validate(
             failed_guardrails.append(f'{guardrail} ({result["score"]:.4f})')
     if failed_guardrails:
         return False, (
-            f"{'These validations failed: '.join(failed_guardrails[1:])}. Revise your prompt or check with our technical support."  # noqa: E501
+            f"{'These validations failed: '.join(failed_guardrails[0:])}. Revise your prompt or check with our technical support."  # noqa: E501
         )
-        # return False, errors[0]
 
     return True, None
 
@@ -115,9 +54,9 @@ def call_sentinel_api(
     start = time.time()
 
     # Set url & headers
-    url = f'{os.environ["SENTINEL_BASE_URL"]}/api/v1/validate'
+    url = f"{SENTINEL_BASE_URL}/api/v1/validate"
     headers = {
-        "x-api-key": os.environ["SENTINEL_API_KEY"],
+        "x-api-key": SENTINEL_API_KEY,
         "Content-Type": "application/json",
     }
 
@@ -138,7 +77,7 @@ def call_sentinel_api(
         {
             "msg": "Sentinel API response",
             "response": response.text,
-            "response_headers": response.headers,
+            "response_headers": response.headers.lower_items(),
             "duration": time.time() - start,
         }
     )
