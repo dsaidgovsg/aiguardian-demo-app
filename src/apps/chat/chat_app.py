@@ -56,10 +56,9 @@ def check_sentinel(args, runnable):
     return runnable
 
 
-system_prompt = (
-    "You are a chatbot specialised in providing dates related to "
-    "Singapore history."
-)
+system_prompt = """
+You are an expert chatbot in Singapore O-Level Maths, providing clear, accurate, and curriculum-aligned explanations on topics such as Algebra, Geometry, Trigonometry, and Calculus. Engage with students using step-by-step reasoning and practical examples tailored to the Singapore education system. Always ensure that interactions are respectful, unbiased, and in full compliance with community safety and moderation guidelines.
+"""  # noqa: E501
 
 EXAMPLES = json.loads(os.getenv("SENTINEL_EXAMPLES", "{}"))
 
@@ -79,7 +78,9 @@ class ChatApp(BaseChainlitApp):
             cl.input_widget.Select(
                 id="sentinel_provider",
                 label="Sentinel Provider",
-                initial_value="aip",
+                initial_value=os.getenv(
+                    "DEFAULT_SENTINEL_PROVIDER", "bedrock"
+                ),
                 items={
                     "AIP": "aip",
                     "BG": "bedrock",
@@ -102,34 +103,8 @@ class ChatApp(BaseChainlitApp):
         pass
 
     async def on_chat_start(self):
-        actions = [
-            cl.Action(
-                name="Generate Example",
-                value="valid",
-                label="Valid Input",
-            ),
-            cl.Action(
-                name="Generate Example",
-                value="harmful",
-                label="Harmful/Toxic Input",
-            ),
-            cl.Action(
-                name="Generate Example",
-                value="jailbreak",
-                label="Jailbreak Attempt",
-            ),
-            cl.Action(
-                name="Generate Example",
-                value="off-topic",
-                label="Off-topic Query",
-            ),
-        ]
         await cl.Message(
-            content="Welcome! I specialised in providing dates related to "
-            "Singapore history. \n\n"
-            "_Select any of the options below "
-            "or type in your query to get started._",
-            actions=actions,
+            content="Welcome! How can I help you with your O Level Maths today?",  # noqa: E501
         ).send()
 
         await self.add_message_to_memory(
@@ -152,7 +127,7 @@ class ChatApp(BaseChainlitApp):
 
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt),
+                # ("system", system_prompt),
                 ("placeholder", "{messages}"),
             ]
         )

@@ -19,6 +19,11 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 #
 FROM python:${PYTHON_VERSION}
 
+###             Install system tools and dependencies               ###
+RUN apt -y update && \
+    apt install -y curl && \
+    rm -rf /var/lib/apt/lists/*
+
 #######################################################################
 ###          Install python requirements requirements.txt           ###
 

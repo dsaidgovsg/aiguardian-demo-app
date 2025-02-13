@@ -194,6 +194,7 @@ def call_sentinel_api(
         {
             "msg": "Sentinel API response",
             "response": response.text,
+            "response_headers": response.headers,
             "duration": time.time() - start,
         }
     )

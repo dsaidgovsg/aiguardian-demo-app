@@ -19,9 +19,9 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def root():
-    return {"message": "Ok", "v": VERSION}
+# @app.get("/")
+# def root():
+#     return {"message": "Ok", "v": VERSION}
 
 
 if __name__ == "__main__":
