@@ -20,7 +20,7 @@ from apps.base_app import BaseChainlitApp
 from apps.handlers import AnswerCallbackHandler
 from constants import LLM_PROFILES
 from libs.logging_helper import logger
-from services.sentinel import aip_sentinel
+from services.sentinel import aip_sentinel, sentinel
 from services.sentinel import bedrock_guardrails
 
 
@@ -31,26 +31,22 @@ def check_sentinel(args, runnable):
     messages: List[BaseMessage] = args["messages"]
     content_to_check = "\n".join(f"{_.content}" for _ in messages[-1:])
 
-    chat_settings = cl.user_session.get("chat_settings")
-
-    passed, error_message = (
-        aip_sentinel.validate(
-            content_to_check,
-            filters=["lionguard", "promptguard", "off-topic-2"],
-            params={"off-topic-2": {"system_prompt": system_prompt}},
-        )
-        if chat_settings.get("sentinel_provider") == "aip"
-        else bedrock_guardrails.validate(
-            content_to_check,
-        )
+    passed, error_message = sentinel.validate(
+        content_to_check,
+        guardrails={
+            "aws": {},
+            "lionguard": {},
+            "off-topic": {},
+            "system-prompt-leakage": {},
+        },
+        additional_params={
+            "messages": [{"content": system_prompt, "role": "system"}]
+        },
     )
 
     if not passed:
         return ChatPromptTemplate(messages=[]) | FakeListChatModel(
-            responses=[
-                "![forbidden-chat](public/images/forbidden.svg) "
-                f"**WARNING**: {error_message}"
-            ]
+            responses=[f"**WARNING**: {error_message}"]
         )
 
     return runnable

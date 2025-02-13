@@ -2,4 +2,9 @@ img[alt=loading] { width: 32px !important; }
 
 img[alt=forbidden-chat] { width: 20px !important; }
 
+[data-radix-aspect-ratio-wrapper],
+[data-radix-aspect-ratio-wrapper] div {
+  display: inline-block;
+}
+
 .markdown-body p { display: flex; align-items: center; }

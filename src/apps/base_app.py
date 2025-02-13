@@ -273,8 +273,8 @@ class BaseChainlitApp(BaseModel):
         )
         await self.add_message_to_memory(message, check_for_edit=True)
 
-        waiting_message = await self.get_waiting_message().send()
-        cl.user_session.set("waiting_message", waiting_message)
+        # waiting_message = await self.get_waiting_message().send()
+        # cl.user_session.set("waiting_message", waiting_message)
 
         runnable: Runnable = cl.user_session.get("runnable")
         # cb = cl.AsyncLangchainCallbackHandler(stream_final_answer=True)
@@ -317,7 +317,7 @@ class BaseChainlitApp(BaseModel):
                 type="system_message",
             ).send()
         finally:
-            await cl.user_session.get("waiting_message").remove()
+            # await cl.user_session.get("waiting_message").remove()
             cl.user_session.set("waiting_message", None)
 
         logger.info(

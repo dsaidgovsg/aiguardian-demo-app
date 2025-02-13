@@ -58,7 +58,7 @@ class AnswerCallbackHandler(AsyncCallbackHandler):
         **kwargs: Any,
     ) -> Any:
         if not self.message.content:
-            await cl.user_session.get("waiting_message").remove()
+            # await cl.user_session.get("waiting_message").remove()
 
             await self.message.send()
 
